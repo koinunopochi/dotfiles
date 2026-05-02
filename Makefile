@@ -17,7 +17,7 @@ help:
 # 一発セットアップ
 # -----------------------------------------------------------------------------
 setup: check-nix nix-deps direnv-config bash-hook
-	@./install.sh -y
+	@nix develop --command ./install.sh -y
 	@$(MAKE) direnv-allow
 	@echo ""
 	@echo "✓ Done. 新しいシェルを開いて 'cd ~/dotfiles' すると flake が自動展開されます。"
