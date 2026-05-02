@@ -1,0 +1,20 @@
+# direnv
+.direnv/
+
+# Nix build
+result
+result-*
+
+# 環境固有
+.env
+.env.local
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+*.swp
+*.swo
+*~
