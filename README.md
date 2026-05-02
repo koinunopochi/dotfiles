@@ -14,9 +14,21 @@ koinunopochi の vim/tmux/zsh dotfiles。
 ### Nix を使う（推奨）
 
 ```bash
+# Nix と direnv (+ nix-direnv) をグローバルに入れておく
+sh <(curl -L https://nixos.org/nix/install) --daemon
+nix profile add nixpkgs#direnv nixpkgs#nix-direnv
+
+# direnv が nix-direnv を使うように
+mkdir -p ~/.config/direnv
+echo 'source $HOME/.nix-profile/share/nix-direnv/direnvrc' >> ~/.config/direnv/direnvrc
+
+# bash の場合のみ hook を ~/.bashrc に追加（zsh は core.zsh で有効化済み）
+echo 'command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"' >> ~/.bashrc
+
+# dotfiles
 git clone git@github.com:koinunopochi/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-direnv allow      # use flake が走る
+direnv allow      # use flake が走る → vim/tmux/zsh/stow が Nix 版に切り替わる
 make install      # stow で symlink を貼る
 ```
 

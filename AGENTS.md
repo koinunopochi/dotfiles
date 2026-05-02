@@ -45,10 +45,29 @@ vim/tmux/zsh を中心とした薄い dotfiles。GNU Stow で `~` 配下に syml
 ### Nix を使う（推奨）
 
 ```bash
-# Nix と direnv が入っている前提
+# Nix インストール（公式インストーラ）
+sh <(curl -L https://nixos.org/nix/install) --daemon
+
+# flake 有効化
+mkdir -p ~/.config/nix
+echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+
+# direnv + nix-direnv をグローバルに入れる
+nix profile add nixpkgs#direnv nixpkgs#nix-direnv
+
+# direnv が nix-direnv を使うように
+mkdir -p ~/.config/direnv
+echo 'source $HOME/.nix-profile/share/nix-direnv/direnvrc' >> ~/.config/direnv/direnvrc
+
+# direnv hook をシェルに追加
+# zsh の場合は dotfiles の core.zsh で自動有効化される
+# bash の場合は ~/.bashrc に追記:
+echo 'command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"' >> ~/.bashrc
+
+# dotfiles を取得
 git clone git@github.com:koinunopochi/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-direnv allow                  # .envrc を許可 → use flake が走る
+direnv allow                  # cd するだけで vim/tmux/zsh/stow が Nix 版に切り替わる
 make install                  # stow で symlink を貼る
 ```
 

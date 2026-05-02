@@ -70,3 +70,8 @@ setopt AUTO_CD
 setopt AUTO_PUSHD
 setopt PUSHD_IGNORE_DUPS
 setopt CORRECT
+
+# -----------------------------------------------------------------------------
+# direnv（あれば hook を有効化）
+# -----------------------------------------------------------------------------
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"

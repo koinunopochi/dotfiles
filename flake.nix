@@ -25,13 +25,14 @@
           default = vimWithPlugins;
         };
 
+        # devShell では dotfiles を編集・操作するためのツールを揃える。
+        # direnv はグローバルに `nix profile install` しているのでここでは持たない。
         devShells.default = pkgs.mkShell {
           buildInputs = [
             vimWithPlugins
             pkgs.tmux
             pkgs.zsh
             pkgs.stow
-            pkgs.direnv
             pkgs.git
           ];
 
