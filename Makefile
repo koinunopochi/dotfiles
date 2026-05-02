@@ -1,26 +1,27 @@
 PACKAGES := vim tmux zsh
 STOW_DIR := stow
 
-.PHONY: help setup install uninstall reinstall check check-nix nix-deps direnv-config bash-hook direnv-allow
+.PHONY: help setup install uninstall reinstall check check-nix nix-deps nix-zsh direnv-config bash-hook direnv-allow login-shell
 
 help:
 	@echo "セットアップ:"
-	@echo "  make setup       # 初期セットアップ一式（要 Nix）"
+	@echo "  make setup        # 初期セットアップ一式（要 Nix）"
+	@echo "  make login-shell  # zsh をログインシェルに（要 sudo / chsh パスワード）"
 	@echo ""
 	@echo "Stow 操作:"
-	@echo "  make install     # symlink を貼る"
-	@echo "  make uninstall   # symlink を外す"
-	@echo "  make reinstall   # 貼り直し"
-	@echo "  make check       # ドライラン"
+	@echo "  make install      # symlink を貼る"
+	@echo "  make uninstall    # symlink を外す"
+	@echo "  make reinstall    # 貼り直し"
+	@echo "  make check        # ドライラン"
 
 # -----------------------------------------------------------------------------
 # 一発セットアップ
 # -----------------------------------------------------------------------------
-setup: check-nix nix-deps direnv-config bash-hook
+setup: check-nix nix-deps nix-zsh direnv-config bash-hook
 	@nix develop --command ./install.sh -y
 	@$(MAKE) direnv-allow
 	@echo ""
-	@echo "✓ Done. 新しいシェルを開いて 'cd ~/dotfiles' すると flake が自動展開されます。"
+	@echo "✓ Done. 'make login-shell' で zsh をデフォルトに切替できます。"
 
 check-nix:
 	@command -v nix >/dev/null 2>&1 || { \
@@ -37,6 +38,10 @@ check-nix:
 nix-deps:
 	@command -v direnv >/dev/null 2>&1 || nix profile add nixpkgs#direnv nixpkgs#nix-direnv
 	@echo "  → direnv + nix-direnv: OK"
+
+nix-zsh:
+	@[ -e $(HOME)/.nix-profile/bin/zsh ] || nix profile add nixpkgs#zsh
+	@echo "  → zsh (nix profile): OK"
 
 direnv-config:
 	@mkdir -p $(HOME)/.config/direnv
@@ -55,6 +60,25 @@ bash-hook:
 
 direnv-allow:
 	@direnv allow . 2>&1 | sed 's/^/  /' || true
+
+# -----------------------------------------------------------------------------
+# ログインシェルを zsh に切替
+# -----------------------------------------------------------------------------
+login-shell:
+	@ZSH_PATH="$(HOME)/.nix-profile/bin/zsh"; \
+	[ -x "$$ZSH_PATH" ] || { echo "ERROR: $$ZSH_PATH が無い。先に 'make nix-zsh'"; exit 1; }; \
+	if ! grep -qx "$$ZSH_PATH" /etc/shells 2>/dev/null; then \
+	  echo "  → /etc/shells に $$ZSH_PATH を追加（sudo）"; \
+	  echo "$$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null; \
+	fi; \
+	CURRENT="$$(getent passwd $$USER | awk -F: '{print $$7}')"; \
+	if [ "$$CURRENT" = "$$ZSH_PATH" ]; then \
+	  echo "  → ログインシェルは既に zsh"; \
+	else \
+	  echo "  → chsh で $$ZSH_PATH に切替（パスワード入力あり）"; \
+	  chsh -s "$$ZSH_PATH"; \
+	  echo "  ✓ 次回ログインから zsh"; \
+	fi
 
 # -----------------------------------------------------------------------------
 # Stow 操作
