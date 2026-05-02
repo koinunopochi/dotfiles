@@ -45,31 +45,27 @@ vim/tmux/zsh を中心とした薄い dotfiles。GNU Stow で `~` 配下に syml
 ### Nix を使う（推奨）
 
 ```bash
-# Nix インストール（公式インストーラ）
+# 1. Nix を入れる（公式インストーラ）
 sh <(curl -L https://nixos.org/nix/install) --daemon
+# 新規シェルを開くか、現在のシェルで:
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-# flake 有効化
-mkdir -p ~/.config/nix
-echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
-
-# direnv + nix-direnv をグローバルに入れる
-nix profile add nixpkgs#direnv nixpkgs#nix-direnv
-
-# direnv が nix-direnv を使うように
-mkdir -p ~/.config/direnv
-echo 'source $HOME/.nix-profile/share/nix-direnv/direnvrc' >> ~/.config/direnv/direnvrc
-
-# direnv hook をシェルに追加
-# zsh の場合は dotfiles の core.zsh で自動有効化される
-# bash の場合は ~/.bashrc に追記:
-echo 'command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"' >> ~/.bashrc
-
-# dotfiles を取得
+# 2. dotfiles を取得
 git clone git@github.com:koinunopochi/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-direnv allow                  # cd するだけで vim/tmux/zsh/stow が Nix 版に切り替わる
-make install                  # stow で symlink を貼る
+
+# 3. 一発セットアップ
+make setup
 ```
+
+`make setup` は次を全部やる:
+
+- `~/.config/nix/nix.conf` に flake 有効化を追記
+- `nix profile add nixpkgs#direnv nixpkgs#nix-direnv`
+- `~/.config/direnv/direnvrc` に nix-direnv を source
+- `~/.bashrc` に direnv hook を追加（zsh は core.zsh で有効化済み）
+- `install.sh -y` で stow による symlink（既存実体ファイルは自動で `.bak`）
+- `direnv allow .` で flake を許可
 
 ### Nix を使わない（apt / brew）
 
@@ -80,10 +76,15 @@ sudo apt install -y stow      # or: brew install stow
 make install
 ```
 
-### 確認
+### Make ターゲット一覧
 
 ```bash
-make check                    # ドライラン（何が symlink されるか）
+make help        # 一覧表示
+make setup       # 初期セットアップ一式（要 Nix）
+make install     # symlink を貼る
+make uninstall   # symlink を外す
+make reinstall   # 貼り直し
+make check       # ドライラン
 ```
 
 ## Stow Packages

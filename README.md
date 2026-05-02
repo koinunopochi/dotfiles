@@ -14,23 +14,25 @@ koinunopochi の vim/tmux/zsh dotfiles。
 ### Nix を使う（推奨）
 
 ```bash
-# Nix と direnv (+ nix-direnv) をグローバルに入れておく
+# 1. Nix を入れる（一度だけ）
 sh <(curl -L https://nixos.org/nix/install) --daemon
-nix profile add nixpkgs#direnv nixpkgs#nix-direnv
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-# direnv が nix-direnv を使うように
-mkdir -p ~/.config/direnv
-echo 'source $HOME/.nix-profile/share/nix-direnv/direnvrc' >> ~/.config/direnv/direnvrc
-
-# bash の場合のみ hook を ~/.bashrc に追加（zsh は core.zsh で有効化済み）
-echo 'command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"' >> ~/.bashrc
-
-# dotfiles
+# 2. dotfiles を取得して一発セットアップ
 git clone git@github.com:koinunopochi/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-direnv allow      # use flake が走る → vim/tmux/zsh/stow が Nix 版に切り替わる
-make install      # stow で symlink を貼る
+make setup
 ```
+
+`make setup` 一発で次が全部入る:
+
+- flake 有効化 (`~/.config/nix/nix.conf`)
+- `direnv` + `nix-direnv` を Nix profile に install
+- shell hook を `~/.bashrc` に追加（zsh は `core.zsh` で自動）
+- stow で symlink（既存ファイルは自動で `.bak`）
+- `direnv allow` で flake を許可
+
+以降、`cd ~/dotfiles` するだけで vim/tmux/zsh/stow が Nix 版に切り替わる。
 
 ### Nix を使わない
 
