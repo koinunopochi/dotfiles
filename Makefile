@@ -1,7 +1,16 @@
 PACKAGES := vim tmux zsh
 STOW_DIR := stow
 
-.PHONY: help setup install uninstall reinstall check check-nix nix-deps nix-zsh direnv-config bash-hook direnv-allow login-shell
+# グローバルに `nix profile add` するパッケージ。
+# 形式: <nixpkgs 名>:<~/.nix-profile/ 配下で存在確認するパス>
+# nix-direnv は bin を持たないので share/ を見る。
+GLOBAL_NIX_PKGS := \
+  direnv:bin/direnv \
+  nix-direnv:share/nix-direnv/direnvrc \
+  zsh:bin/zsh \
+  lazygit:bin/lazygit
+
+.PHONY: help setup install uninstall reinstall check check-nix nix-globals direnv-config bash-hook direnv-allow login-shell
 
 help:
 	@echo "セットアップ:"
@@ -17,7 +26,7 @@ help:
 # -----------------------------------------------------------------------------
 # 一発セットアップ
 # -----------------------------------------------------------------------------
-setup: check-nix nix-deps nix-zsh direnv-config bash-hook
+setup: check-nix nix-globals direnv-config bash-hook
 	@nix develop --command ./install.sh -y
 	@$(MAKE) direnv-allow
 	@echo ""
@@ -35,13 +44,15 @@ check-nix:
 	  echo "  → flake 有効化 (~/.config/nix/nix.conf)"; \
 	}
 
-nix-deps:
-	@command -v direnv >/dev/null 2>&1 || nix profile add nixpkgs#direnv nixpkgs#nix-direnv
-	@echo "  → direnv + nix-direnv: OK"
-
-nix-zsh:
-	@[ -e $(HOME)/.nix-profile/bin/zsh ] || nix profile add nixpkgs#zsh
-	@echo "  → zsh (nix profile): OK"
+nix-globals:
+	@for entry in $(GLOBAL_NIX_PKGS); do \
+	  pkg="$${entry%%:*}"; check="$${entry##*:}"; \
+	  if [ -e "$(HOME)/.nix-profile/$$check" ]; then \
+	    echo "  → $$pkg: OK"; \
+	  else \
+	    nix profile add nixpkgs#$$pkg && echo "  → $$pkg: 追加"; \
+	  fi; \
+	done
 
 direnv-config:
 	@mkdir -p $(HOME)/.config/direnv
@@ -66,7 +77,7 @@ direnv-allow:
 # -----------------------------------------------------------------------------
 login-shell:
 	@ZSH_PATH="$(HOME)/.nix-profile/bin/zsh"; \
-	[ -x "$$ZSH_PATH" ] || { echo "ERROR: $$ZSH_PATH が無い。先に 'make nix-zsh'"; exit 1; }; \
+	[ -x "$$ZSH_PATH" ] || { echo "ERROR: $$ZSH_PATH が無い。先に 'make nix-globals'"; exit 1; }; \
 	if ! grep -qx "$$ZSH_PATH" /etc/shells 2>/dev/null; then \
 	  echo "  → /etc/shells に $$ZSH_PATH を追加（sudo）"; \
 	  echo "$$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null; \
