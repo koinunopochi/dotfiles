@@ -15,7 +15,6 @@ GLOBAL_NIX_PKGS := \
 help:
 	@echo "セットアップ:"
 	@echo "  make setup        # 初期セットアップ一式（要 Nix）"
-	@echo "  make login-shell  # zsh をログインシェルに（要 sudo / chsh パスワード）"
 	@echo ""
 	@echo "Stow 操作:"
 	@echo "  make install      # symlink を貼る"
@@ -26,11 +25,15 @@ help:
 # -----------------------------------------------------------------------------
 # 一発セットアップ
 # -----------------------------------------------------------------------------
+# 最後に exec で現在シェルを zsh に切替える（make recipe の subshell が
+# zsh に置き換わるので、Ctrl-D で抜けると make 呼び出し元の bash に戻る）。
 setup: check-nix nix-globals direnv-config bash-hook
 	@nix develop --command ./install.sh -y
 	@$(MAKE) direnv-allow
+	@$(MAKE) login-shell
 	@echo ""
-	@echo "✓ Done. 'make login-shell' で zsh をデフォルトに切替できます。"
+	@echo "✓ Done. 今のシェルを zsh に切替えます (Ctrl-D で元の bash に戻ります)..."
+	@exec $(HOME)/.nix-profile/bin/zsh -l
 
 check-nix:
 	@command -v nix >/dev/null 2>&1 || { \
