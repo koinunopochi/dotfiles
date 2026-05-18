@@ -30,14 +30,18 @@ vim/tmux/zsh を中心とした薄い dotfiles。GNU Stow で `~` 配下に syml
 │   │   └── .vimrc                # → ~/.vimrc
 │   ├── tmux/
 │   │   └── .tmux.conf            # → ~/.tmux.conf
-│   └── zsh/
-│       ├── .zshrc                # → ~/.zshrc
-│       └── .config/zsh/
-│           ├── core.zsh          # → ~/.config/zsh/core.zsh
-│           └── os/
-│               ├── linux.zsh
-│               └── macos.zsh
-└── nix/                          # 拡張用（home-manager 等を将来検討）
+│   ├── zsh/
+│   │   ├── .zshrc                # → ~/.zshrc
+│   │   └── .config/zsh/
+│   │       ├── core.zsh          # → ~/.config/zsh/core.zsh
+│   │       └── os/
+│   │           ├── linux.zsh
+│   │           └── macos.zsh
+│   └── kawauso/
+│       └── .config/kawauso/
+│           └── config.toml       # → ~/.config/kawauso/config.toml
+└── nix/
+    └── home.nix                  # home-manager: 普段使う CLI ツールを宣言的に管理
 ```
 
 ## Setup Commands
@@ -61,11 +65,13 @@ make setup
 `make setup` は次を全部やる:
 
 - `~/.config/nix/nix.conf` に flake 有効化を追記
-- `nix profile add nixpkgs#direnv nixpkgs#nix-direnv`
+- `home-manager switch --flake .#debian@workspace-1` で `nix/home.nix` の `home.packages` (direnv / nix-direnv / zsh / lazygit ほか) を `~/.nix-profile` に反映
 - `~/.config/direnv/direnvrc` に nix-direnv を source
 - `~/.bashrc` に direnv hook を追加（zsh は core.zsh で有効化済み）
 - `install.sh -y` で stow による symlink（既存実体ファイルは自動で `.bak`）
 - `direnv allow .` で flake を許可
+
+新しい CLI ツールを追加したいときは `nix/home.nix` の `home.packages` に追記して `make hm-switch` するだけ。`nix profile add ...` を手で叩く必要はない。
 
 ### Nix を使わない（apt / brew）
 
@@ -81,6 +87,7 @@ make install
 ```bash
 make help        # 一覧表示
 make setup       # 初期セットアップ一式（要 Nix）
+make hm-switch   # nix/home.nix を反映（新規ツール追加時）
 make install     # symlink を貼る
 make uninstall   # symlink を外す
 make reinstall   # 貼り直し
@@ -94,6 +101,7 @@ make check       # ドライラン
 | `vim` | `.vimrc` | `~/.vimrc` |
 | `tmux` | `.tmux.conf` | `~/.tmux.conf` |
 | `zsh` | `.zshrc`, `.config/zsh/*` | `~/.zshrc`, `~/.config/zsh/*` |
+| `kawauso` | `.config/kawauso/config.toml` | `~/.config/kawauso/config.toml` |
 
 新しいパッケージを追加するときは `stow/<pkg>/` を作り、`Makefile` の `PACKAGES` と `install.sh` の `PACKAGES` に1行追加する。
 

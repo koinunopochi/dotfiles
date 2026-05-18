@@ -1,20 +1,17 @@
-PACKAGES := vim tmux zsh
+PACKAGES := vim tmux zsh kawauso
 STOW_DIR := stow
 
-# グローバルに `nix profile add` するパッケージ。
-# 形式: <nixpkgs 名>:<~/.nix-profile/ 配下で存在確認するパス>
-# nix-direnv は bin を持たないので share/ を見る。
-GLOBAL_NIX_PKGS := \
-  direnv:bin/direnv \
-  nix-direnv:share/nix-direnv/direnvrc \
-  zsh:bin/zsh \
-  lazygit:bin/lazygit
+# home-manager configuration 名 (flake.nix の homeConfigurations のキー)
+HM_NAME := debian@workspace-1
 
-.PHONY: help setup install uninstall reinstall check check-nix nix-globals direnv-config bash-hook direnv-allow login-shell
+.PHONY: help setup install uninstall reinstall check check-nix hm-switch direnv-config bash-hook direnv-allow login-shell
 
 help:
 	@echo "セットアップ:"
 	@echo "  make setup        # 初期セットアップ一式（要 Nix）"
+	@echo ""
+	@echo "Home-Manager:"
+	@echo "  make hm-switch    # nix/home.nix を反映（新規ツール追加時）"
 	@echo ""
 	@echo "Stow 操作:"
 	@echo "  make install      # symlink を貼る"
@@ -27,7 +24,7 @@ help:
 # -----------------------------------------------------------------------------
 # 最後に exec で現在シェルを zsh に切替える（make recipe の subshell が
 # zsh に置き換わるので、Ctrl-D で抜けると make 呼び出し元の bash に戻る）。
-setup: check-nix nix-globals direnv-config bash-hook
+setup: check-nix hm-switch direnv-config bash-hook
 	@nix develop --command ./install.sh -y
 	@$(MAKE) direnv-allow
 	@$(MAKE) login-shell
@@ -47,15 +44,15 @@ check-nix:
 	  echo "  → flake 有効化 (~/.config/nix/nix.conf)"; \
 	}
 
-nix-globals:
-	@for entry in $(GLOBAL_NIX_PKGS); do \
-	  pkg="$${entry%%:*}"; check="$${entry##*:}"; \
-	  if [ -e "$(HOME)/.nix-profile/$$check" ]; then \
-	    echo "  → $$pkg: OK"; \
-	  else \
-	    nix profile add nixpkgs#$$pkg && echo "  → $$pkg: 追加"; \
-	  fi; \
-	done
+# -----------------------------------------------------------------------------
+# Home-Manager
+# -----------------------------------------------------------------------------
+# nix/home.nix の home.packages を ~/.nix-profile/ に反映する。
+# 旧 `nix profile add` (GLOBAL_NIX_PKGS) はこちらに統合済み。
+# 初回 / 既存 nix profile と衝突する場合は -b hm-backup で .hm-backup に退避。
+hm-switch:
+	@echo "  → home-manager switch (.#$(HM_NAME))"
+	@nix run home-manager -- switch --flake .#$(HM_NAME) -b hm-backup
 
 direnv-config:
 	@mkdir -p $(HOME)/.config/direnv
@@ -80,7 +77,7 @@ direnv-allow:
 # -----------------------------------------------------------------------------
 login-shell:
 	@ZSH_PATH="$(HOME)/.nix-profile/bin/zsh"; \
-	[ -x "$$ZSH_PATH" ] || { echo "ERROR: $$ZSH_PATH が無い。先に 'make nix-globals'"; exit 1; }; \
+	[ -x "$$ZSH_PATH" ] || { echo "ERROR: $$ZSH_PATH が無い。先に 'make hm-switch'"; exit 1; }; \
 	if ! grep -qx "$$ZSH_PATH" /etc/shells 2>/dev/null; then \
 	  echo "  → /etc/shells に $$ZSH_PATH を追加（sudo）"; \
 	  echo "$$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null; \
